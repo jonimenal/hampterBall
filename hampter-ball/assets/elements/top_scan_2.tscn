@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://c4mm25kqrilkw"]
+
+[ext_resource type="Script" uid="uid://uw5r3exb31bm" path="res://assets/elements/top_scan.gd" id="1_wvek4"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_2tfs1"]
+height = 32.0
+
+[node name="TopScan2" type="Area2D" unique_id=502129308]
+script = ExtResource("1_wvek4")
+
+[node name="scanArea" type="CollisionShape2D" parent="." unique_id=1600240235]
+position = Vector2(0, -8)
+shape = SubResource("CapsuleShape2D_2tfs1")
