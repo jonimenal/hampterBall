@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://csxkv8duwm7us"]
+
+[ext_resource type="PackedScene" uid="uid://c1x6nrw3nabk1" path="res://assets/elements/hampter.tscn" id="1_6akhc"]
+
+[sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_sfywo"]
+distance = -7.0
+
+[node name="Game" type="Node2D" unique_id=2120288195]
+
+[node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=860932777]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D" unique_id=874992922]
+shape = SubResource("WorldBoundaryShape2D_sfywo")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=359439475]
+zoom = Vector2(7.83, 7.83)
+
+[node name="CharacterBody2D" parent="." unique_id=1305410014 instance=ExtResource("1_6akhc")]

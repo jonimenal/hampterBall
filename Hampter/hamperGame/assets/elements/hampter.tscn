@@ -1,0 +1,61 @@
+[gd_scene format=3 uid="uid://c1x6nrw3nabk1"]
+
+[ext_resource type="Texture2D" uid="uid://c3sx54vy2aimi" path="res://assets/sprites/hamsterSpriteSheet.png" id="2_k7tkh"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ema6r"]
+atlas = ExtResource("2_k7tkh")
+region = Rect2(16, 16, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sc6o8"]
+atlas = ExtResource("2_k7tkh")
+region = Rect2(32, 16, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_k7tkh"]
+atlas = ExtResource("2_k7tkh")
+region = Rect2(48, 16, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_j87hn"]
+atlas = ExtResource("2_k7tkh")
+region = Rect2(64, 16, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_lmwtf"]
+atlas = ExtResource("2_k7tkh")
+region = Rect2(80, 16, 16, 16)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_ybejj"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ema6r")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_sc6o8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_k7tkh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_j87hn")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_lmwtf")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 10.0
+}]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_ema6r"]
+radius = 3.0
+
+[node name="CharacterBody2D" type="CharacterBody2D" unique_id=1305410014]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1626699644]
+position = Vector2(0, -6)
+sprite_frames = SubResource("SpriteFrames_ybejj")
+animation = &"idle"
+frame_progress = 0.7521205
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1745475449]
+position = Vector2(0, -3)
+shape = SubResource("CircleShape2D_ema6r")
