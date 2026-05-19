@@ -1,0 +1,52 @@
+[gd_scene format=3 uid="uid://bg7t4lsxajdk1"]
+
+[ext_resource type="PackedScene" uid="uid://cwi5h5duhib26" path="res://assets/elements/hampter.tscn" id="1_2ca6o"]
+[ext_resource type="PackedScene" uid="uid://cfl8mpqxg68u4" path="res://assets/elements/ball.tscn" id="2_3r783"]
+[ext_resource type="PackedScene" uid="uid://c4mm25kqrilkw" path="res://assets/elements/top_scan_2.tscn" id="3_e0g5r"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_2tfs1"]
+bounce = 0.5
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_2tfs1"]
+radius = 12.0
+
+[node name="Hampter n Ball" type="Node" unique_id=1346012184]
+
+[node name="Hampter" parent="." unique_id=1892167303 instance=ExtResource("1_2ca6o")]
+position = Vector2(44, -12)
+collision_mask = 6
+grounded_max_speed = 1.2
+grounded_acceleration = 4.0
+onAir_max_speed = 1.7
+onAir_acceleration = 2.1
+jump_height = 14
+jump_peak_time = 0.25
+jump_drop_time = 0.8
+gravityF = -4.0
+dash_speed = 350.0
+
+[node name="Camera2D" type="Camera2D" parent="Hampter" unique_id=1084764960]
+offset = Vector2(0, -64.2)
+zoom = Vector2(3.045, 3.045)
+drag_horizontal_enabled = true
+drag_vertical_enabled = true
+
+[node name="ball" parent="." unique_id=1464180987 instance=ExtResource("2_3r783")]
+position = Vector2(-17, -16)
+collision_layer = 2
+collision_mask = 6
+physics_material_override = SubResource("PhysicsMaterial_2tfs1")
+
+[node name="TopScan2" parent="ball" unique_id=502129308 instance=ExtResource("3_e0g5r")]
+
+[node name="insideBall" type="Area2D" parent="ball" unique_id=1572802276]
+scale = Vector2(1.195, 1.195)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ball/insideBall" unique_id=1504439930]
+shape = SubResource("CircleShape2D_2tfs1")
+debug_color = Color(0.6747647, 0.4968183, 0.28810495, 0.41960785)
+
+[connection signal="body_entered" from="ball/TopScan2" to="Hampter" method="_on_top_scan_2_body_entered"]
+[connection signal="body_exited" from="ball/TopScan2" to="Hampter" method="_on_top_scan_2_body_exited"]
+[connection signal="body_entered" from="ball/insideBall" to="Hampter" method="_on_inside_ball_body_entered"]
+[connection signal="body_exited" from="ball/insideBall" to="Hampter" method="_on_inside_ball_body_exited"]

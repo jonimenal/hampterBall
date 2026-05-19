@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://cfl8mpqxg68u4"]
+
+[ext_resource type="Texture2D" uid="uid://c6vmunkdrmjlk" path="res://assets/sprites/ball.png" id="1_2j7yi"]
+[ext_resource type="Script" uid="uid://del1la2ekfhqg" path="res://assets/elements/ball.gd" id="1_hvijp"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_2j7yi"]
+friction = 0.8
+bounce = 0.63
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hvijp"]
+radius = 16.0
+
+[node name="ball" type="RigidBody2D" unique_id=1464180987]
+collision_mask = 7
+mass = 2.0
+physics_material_override = SubResource("PhysicsMaterial_2j7yi")
+contact_monitor = true
+max_contacts_reported = 1
+script = ExtResource("1_hvijp")
+
+[node name="ballSprite" type="Sprite2D" parent="." unique_id=1839517761]
+texture = ExtResource("1_2j7yi")
+
+[node name="ballCollisionShape2D" type="CollisionShape2D" parent="." unique_id=1995839713]
+shape = SubResource("CircleShape2D_hvijp")
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=529390427]
+visible = false
+polygon = PackedVector2Array(-4, -16, 4, -16, 7, -14, -4, -14, -4, -13, -7, -13, -7, -12, -8, -12, -8, -11, -10, -11, -10, -10, -11, -10, -11, -8, -12, -8, -12, -7, -13, -7, -13, -4, -14, -4, -14, 4, -13, 4, -13, 7, -12, 7, -12, 8, -11, 8, -11, 10, -10, 10, -10, 11, -8, 11, -8, 12, -7, 12, -7, 13, -4, 13, -4, 14, 4, 14, 4, 13, 7, 13, 7, 12, 8, 12, 8, 11, 10, 11, 10, 10, 11, 10, 11, 8, 12, 8, 12, 7, 13, 7, 13, 4, 14, 4, 14, -4, 13, -4, 13, -7, 12, -7, 12, -8, 11, -8, 11, -10, 10, -10, 10, -11, 8, -11, 8, -12, 7, -12, 7, -13, 4, -13, 4, -15, 7, -15, 7, -14, 8, -14, 8, -13, 10, -13, 10, -12, 11, -12, 11, -11, 12, -11, 12, -10, 13, -10, 13, -8, 14, -8, 14, -7, 15, -7, 15, -4, 16, -4, 16, 4, 15, 4, 15, 7, 14, 7, 14, 8, 13, 8, 13, 10, 12, 10, 12, 11, 11, 11, 11, 12, 10, 12, 10, 13, 8, 13, 8, 14, 7, 14, 7, 15, 4, 15, 4, 16, -4, 16, -4, 15, -7, 15, -7, 14, -8, 14, -8, 13, -10, 13, -10, 12, -11, 12, -11, 11, -12, 11, -12, 10, -13, 10, -13, 8, -14, 8, -14, 7, -15, 7, -15, 4, -16, 4, -16, -4, -15, -4, -15, -7, -14, -7, -14, -8, -13, -8, -13, -10, -12, -10, -12, -11, -11, -11, -11, -12, -10, -12, -10, -13, -8, -13, -8, -14, -7, -14, -7, -15, -4, -15)
+disabled = true
