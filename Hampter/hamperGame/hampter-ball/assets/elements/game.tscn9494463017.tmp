@@ -409,6 +409,7 @@ sources/0 = SubResource("TileSetAtlasSource_jgxkk")
 
 [node name="Hampter" parent="." unique_id=1892167303 instance=ExtResource("1_6akhc")]
 position = Vector2(44, -12)
+collision_mask = 6
 grounded_max_speed = 1.2
 grounded_acceleration = 4.0
 onAir_max_speed = 1.7

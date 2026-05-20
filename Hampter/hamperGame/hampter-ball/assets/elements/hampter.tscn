@@ -538,13 +538,12 @@ exit_ball_timer = NodePath("exitBallTimer")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1559712573]
 position = Vector2(0, -6)
 sprite_frames = SubResource("SpriteFrames_bi5r8")
-animation = &"dash"
+animation = &"idle"
 autoplay = "idle"
-frame = 6
-frame_progress = 1.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1981180746]
-position = Vector2(0, -3)
+position = Vector2(0, -2.515)
+scale = Vector2(0.85, 0.85)
 shape = SubResource("CircleShape2D_3wmg8")
 
 [node name="JumpTimer" type="Timer" parent="." unique_id=287944872]
