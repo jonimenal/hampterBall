@@ -282,7 +282,7 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 		#var ballThreshold = ball_collision_shape.shape.radius - hampterCollision.shape.radius
 		#print("distance per frame: ", ballDistPerFrame)
 		#print("threshold: ", ballThreshold)
-		
+
 		# reactive and clip prevention
 		#if (ballLink.x < -12 or ballLink.x > 12): #:
 			#print("away from link X")
@@ -299,7 +299,10 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 			teleporting = false
 		#print(ballLink)
 		# predictive anti clip prevention
-		ball.global_position 
+		var ballPpf = ball.linear_velocity / 60.0
+		print(ball.linear_velocity.length())
+		print("ball pixel per frame: ", ballPpf)
+		#ball.global_position
 	if shouldBeInBall and not insideBall:
 		print("should be in ball, teleporting")
 		# back here
@@ -311,7 +314,7 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 
 	# Handle gravity (y axis / y logic)
 	if not dashDelaying and not teleporting:
-		print("gravity on")
+		#print("gravity on")
 		if wasDashing or groundedDash:
 			velocity.y += (get_jump_gravity()/2.5) * delta # on dash make gravity lighter
 			#print("dash gravity")
@@ -331,7 +334,7 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 	# Handle movement (x axis/x logic)
 	direction = Input.get_axis("left", "right") # update axis
 	if not dashing and not dashDelaying and not (rolling and not shouldBeInBall): # block movement logic if player is dashing or rolling
-		print("movement on")
+		#print("movement on")
 		if wasDashing and not is_on_floor():
 			 # apply smoother ease if player was dashing
 			var target = direction * SPEED * 2.5
