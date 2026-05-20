@@ -81,6 +81,7 @@ var ballJumping = false
 var ballJumpLock = false
 var ballDownFrames = 0
 var ballWasGoingDown = false
+var ballGoingUp = false
 var exitTimerOver = false
 var bailCount = 0
 var ballBailTime = 0
@@ -272,12 +273,12 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 	xyDirection = Input.get_vector("left","right", "up", "down") # update to player current direction
 	var just_landed = is_on_floor() and wasOnAir # this var needs to be here, idk why but it does.
 	ballLink = ball.global_position - global_position # update ball link
-	# Anti clippling inside the ball
-	if shouldBeInBall:
-		hampter.safe_margin = 0.00001 # making safe margin bigger
-	else:
-		hampter.safe_margin = 1
-	if insideBall:
+	## Anti clippling inside the ball
+	#if shouldBeInBall:
+		#hampter.safe_margin = 0.00001 # making safe margin bigger
+	#else:
+		#hampter.safe_margin = 1
+	#if insideBall:
 		#var ballDistPerFrame = ball.linear_velocity.length() * (1.0/60.0) # define the distance per frame (physics runs at 60fps constant)
 		#var ballThreshold = ball_collision_shape.shape.radius - hampterCollision.shape.radius
 		#print("distance per frame: ", ballDistPerFrame)
@@ -291,15 +292,15 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 		#elif  (ballLink.y < -15.2 or ballLink.y > 13):
 			#print("away from link Y")
 			#tp_to_ball()
-		if ball.linear_velocity.length_squared() > 100000:
-			print("pretty fast ball")
-			print(ball.linear_velocity.length_squared())
-			tp_to_ball()
-		else:
-			teleporting = false
-		#print(ballLink)
-		# predictive anti clip prevention
-		ball.global_position 
+		#if ball.linear_velocity.length_squared() > 100000:
+			#print("pretty fast ball")
+			#print(ball.linear_velocity.length_squared())
+			#tp_to_ball()
+		#else:
+			#teleporting = false
+		##print(ballLink)
+		## predictive anti clip prevention
+		# nothing here, predictive prevention should be developed in fixBall branch
 	if shouldBeInBall and not insideBall:
 		print("should be in ball, teleporting")
 		# back here
@@ -311,7 +312,7 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 
 	# Handle gravity (y axis / y logic)
 	if not dashDelaying and not teleporting:
-		print("gravity on")
+		#print("gravity on")
 		if wasDashing or groundedDash:
 			velocity.y += (get_jump_gravity()/2.5) * delta # on dash make gravity lighter
 			#print("dash gravity")
@@ -331,7 +332,7 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 	# Handle movement (x axis/x logic)
 	direction = Input.get_axis("left", "right") # update axis
 	if not dashing and not dashDelaying and not (rolling and not shouldBeInBall): # block movement logic if player is dashing or rolling
-		print("movement on")
+		#print("movement on")
 		if wasDashing and not is_on_floor():
 			 # apply smoother ease if player was dashing
 			var target = direction * SPEED * 2.5
@@ -354,8 +355,8 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 			else:
 				velocity.x = move_toward(currentSpeed, 0, ACCELERATION * 2.5 )
 			currentSpeed = velocity.x
-	else: # DEBUG
-		print("movement logic disabled")
+	#else: # DEBUG
+		#print("movement logic disabled")
 
 	# Handle dash physics logic (needs to be in physics instead of input)
 	if dashDelaying: # stop hampter if preparing for dash
@@ -439,17 +440,20 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 	# HANDLE BALL PHYSICS LOGIC N INTERACTIONS
 
 	# ball jump physics logic
-	if ballJumping == true and insideBall:
-		tp_to_ball()
 	if ballJumping: # logic to reset ball jump
+		if ball.linear_velocity.y < 0: # check if was moving up, just because
+			#print("ball goes up")
+			ballGoingUp = true
 		if ball.linear_velocity.y > 5: # check if ball was moving down
 			#print("ball is going down")
+			#print("ball goes down")
 			ballWasGoingDown = true # state it was going down a frame before
 			ballDownFrames += 1 # counter number of frames it was going down
 		else: # if it isnt moving down, verify validy
 			if ballWasGoingDown and ballDownFrames > 2:
 				print("ball landed!")
 				ballDownFrames = 0
+				ballGoingUp = false
 				ballWasGoingDown = false #it for sure no longer was
 				ballJumping = false # re enable ballJump option
 				velocity.y += get_jump_gravity() * delta # force gravity to come back
@@ -457,14 +461,27 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 				ballDownFrames = 0
 
 	# Handle ball movement physics
-	if insideBall and shouldBeInBall and not bail: # check if player is inside ball (and is supposed to)
-		ball.physics_material_override.friction = 0.3
-		if rolling: # Handle ball roll
-			ball.apply_central_impulse(xyDirection * 20)
-		else: # walking speed boost
-			pushForce = 5
-			currentSpeed += xyDirection.normalized().x * 1.7
+	if shouldBeInBall: # lock player inside the ball, absolute clipping prevention
+		tp_to_ball()
+	
+	# move the ball itself instead of hampter
+	# apply y direction
+	if shouldBeInBall:
+		if ballGoingUp or ballWasGoingDown:
+			ball.apply_central_force(Vector2(0, xyDirection.y * 250))
+			print("Y FORCE")
+	if xyDirection.x and shouldBeInBall:
+		# apply x direction
+		if not ballGoingUp and not ballWasGoingDown:
+			ball.apply_central_force(Vector2(xyDirection.x * 300, 0))
+			print("applying force")
+		else:
+			ball.apply_central_force(Vector2(xyDirection.x * 400, 0))
 
+		
+	if rolling and shouldBeInBall:
+		ball.apply_central_impulse(Vector2(direction * 10, 0))
+	
 	# Handle ball exit 
 	if Input.is_action_just_pressed("ball") and insideBall:
 		#print("cooldown over")
@@ -676,9 +693,10 @@ func _on_inside_ball_body_entered(_body: Node2D) -> void: # check if gampter INS
 	# disable magnet scanner
 	ball_scanner.monitoring = false
 	# Tinker IN BALL ball physics
-	ball.mass = 1.35
-	ball.physics_material_override.bounce = 0.2
-	ball.gravity_scale = 0.6
+	if shouldBeInBall:
+		ball.mass = 1.35
+		ball.physics_material_override.bounce = 0.6
+		ball.gravity_scale = 0.6
 func _on_inside_ball_body_exited(_body: Node2D) -> void: # check if gfasmper OUTSIDE ball
 	# BALL STATE OUTSIDE
 	#print("hampter free")
@@ -690,9 +708,10 @@ func _on_inside_ball_body_exited(_body: Node2D) -> void: # check if gfasmper OUT
 	# enable magnet scanner
 	ball_scanner.monitoring = true
 	# Tinker OUT BALL ball physics
-	ball.mass = 2
-	ball.physics_material_override.bounce = 0.75
-	ball.gravity_scale = 0.55
+	if not shouldBeInBall:
+		ball.mass = 2
+		ball.physics_material_override.bounce = 0.2
+		ball.gravity_scale = 0.55
 func _on_exit_ball_timer_timeout() -> void: # check if exit ball timer is over
 	## switch collisions back to OUTSIDE ball
 	exitTimerOver = true
