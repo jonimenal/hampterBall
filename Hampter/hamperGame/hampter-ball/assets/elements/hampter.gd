@@ -278,13 +278,28 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 	else:
 		hampter.safe_margin = 1
 	if insideBall:
-		if ball.linear_velocity.length_squared() > 140000:
+		#var ballDistPerFrame = ball.linear_velocity.length() * (1.0/60.0) # define the distance per frame (physics runs at 60fps constant)
+		#var ballThreshold = ball_collision_shape.shape.radius - hampterCollision.shape.radius
+		#print("distance per frame: ", ballDistPerFrame)
+		#print("threshold: ", ballThreshold)
+		
+		# reactive and clip prevention
+		#if (ballLink.x < -12 or ballLink.x > 12): #:
+			#print("away from link X")
+			##print(ball.linear_velocity.length_squ5ared())
+			#tp_to_ball()
+		#elif  (ballLink.y < -15.2 or ballLink.y > 13):
+			#print("away from link Y")
+			#tp_to_ball()
+		if ball.linear_velocity.length_squared() > 100000:
 			print("pretty fast ball")
 			print(ball.linear_velocity.length_squared())
 			tp_to_ball()
 		else:
 			teleporting = false
-			
+		#print(ballLink)
+		# predictive anti clip prevention
+		ball.global_position 
 	if shouldBeInBall and not insideBall:
 		print("should be in ball, teleporting")
 		# back here
@@ -296,6 +311,7 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 
 	# Handle gravity (y axis / y logic)
 	if not dashDelaying and not teleporting:
+		print("gravity on")
 		if wasDashing or groundedDash:
 			velocity.y += (get_jump_gravity()/2.5) * delta # on dash make gravity lighter
 			#print("dash gravity")
@@ -310,11 +326,12 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 				jump_buffer = false
 				#print("jump buffer")
 				# TODO jump buffer sometimes bugs and give out a double jump comboing with coyote jump, its a feature combo bug dude 
-	#else:
-		#print("no gravity applied")
+	else:
+		print("no gravity applied")
 	# Handle movement (x axis/x logic)
 	direction = Input.get_axis("left", "right") # update axis
 	if not dashing and not dashDelaying and not (rolling and not shouldBeInBall): # block movement logic if player is dashing or rolling
+		print("movement on")
 		if wasDashing and not is_on_floor():
 			 # apply smoother ease if player was dashing
 			var target = direction * SPEED * 2.5
@@ -337,8 +354,8 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 			else:
 				velocity.x = move_toward(currentSpeed, 0, ACCELERATION * 2.5 )
 			currentSpeed = velocity.x
-	#else: # DEBUG
-		#print("movement logic disabled")
+	else: # DEBUG
+		print("movement logic disabled")
 
 	# Handle dash physics logic (needs to be in physics instead of input)
 	if dashDelaying: # stop hampter if preparing for dash
@@ -661,7 +678,7 @@ func _on_inside_ball_body_entered(_body: Node2D) -> void: # check if gampter INS
 	# Tinker IN BALL ball physics
 	ball.mass = 1.35
 	ball.physics_material_override.bounce = 0.2
-	ball.gravity_scale = 0.45
+	ball.gravity_scale = 0.6
 func _on_inside_ball_body_exited(_body: Node2D) -> void: # check if gfasmper OUTSIDE ball
 	# BALL STATE OUTSIDE
 	#print("hampter free")
