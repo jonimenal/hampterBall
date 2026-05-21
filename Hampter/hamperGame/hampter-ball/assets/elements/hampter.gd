@@ -86,6 +86,7 @@ var bailCount = 0
 var ballBailTime = 0
 var bailTiming = false
 var bail = false
+var ballPastDist = ballLink.length()
 # include nodes (hampter vars)
 @onready var hampter: CharacterBody2D = $"."
 @onready var hampterSprite: AnimatedSprite2D = $AnimatedSprite2D
@@ -271,6 +272,9 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 	var pastState = state
 	xyDirection = Input.get_vector("left","right", "up", "down") # update to player current direction
 	var just_landed = is_on_floor() and wasOnAir # this var needs to be here, idk why but it does.
+	# back here 
+	if not teleporting:
+		ballPastDist = ballLink.length()
 	ballLink = ball.global_position - global_position # update ball link
 	# Anti clippling inside the ball
 	if shouldBeInBall:
@@ -283,7 +287,7 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 		#print("distance per frame: ", ballDistPerFrame)
 		#print("threshold: ", ballThreshold)
 
-		# reactive and clip prevention
+		# reactive anti clip prevention
 		#if (ballLink.x < -12 or ballLink.x > 12): #:
 			#print("away from link X")
 			##print(ball.linear_velocity.length_squ5ared())
@@ -291,25 +295,38 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 		#elif  (ballLink.y < -15.2 or ballLink.y > 13):
 			#print("away from link Y")
 			#tp_to_ball()
-		if ball.linear_velocity.length_squared() > 100000:
-			print("pretty fast ball")
-			print(ball.linear_velocity.length_squared())
-			tp_to_ball()
-		else:
-			teleporting = false
+		#if ball.linear_velocity.length_squared() > 100000:
+			#print("pretty fast ball")
+			#print(ball.linear_velocity.length_squared())
+			#tp_to_ball()
+		#else:
+			#teleporting = false
 		#print(ballLink)
+		
 		# predictive anti clip prevention
-		var ballPpf = ball.linear_velocity / 60.0
-		print(ball.linear_velocity.length())
-		print("ball pixel per frame: ", ballPpf)
+		
+		#var ballNextPos = ball.global_position + (ball.linear_velocity * delta) # predict by calculating speed with current position
+		#if (ballNextPos - global_position).length() > 16 and shouldBeInBall: # check if the next position compared to hampter rn, is bigger than ball's radius
+		var teleport = false
+		if (ballPastDist < ballLink.length()) and (ballLink.length() - ballPastDist) > 1.8 and shouldBeInBall: # ball's speed is growing
+			teleporting = true
+			teleport = true
+		elif (ballPastDist >= ballLink.length()) and shouldBeInBall:
+			teleporting = false
+			teleport = false
+			
+		if teleport:
+			print("predictive prevention")
+			tp_to_ball()
+		
 		#ball.global_position
-	if shouldBeInBall and not insideBall:
-		print("should be in ball, teleporting")
-		# back here
-		print(ball.linear_velocity.length_squared())
-		tp_to_ball()
-	else:
-		teleporting = false 
+	#if shouldBeInBall and not insideBall and not teleporting:
+		#print("should be in ball, teleporting")
+		## back here
+		#print(ball.linear_velocity.length_squared())
+		#tp_to_ball()
+	#else:
+		#teleporting = false 
 		
 
 	# Handle gravity (y axis / y logic)
@@ -329,8 +346,8 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 				jump_buffer = false
 				#print("jump buffer")
 				# TODO jump buffer sometimes bugs and give out a double jump comboing with coyote jump, its a feature combo bug dude 
-	else:
-		print("no gravity applied")
+	#else:
+		#print("no gravity applied")
 	# Handle movement (x axis/x logic)
 	direction = Input.get_axis("left", "right") # update axis
 	if not dashing and not dashDelaying and not (rolling and not shouldBeInBall): # block movement logic if player is dashing or rolling
@@ -357,8 +374,8 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 			else:
 				velocity.x = move_toward(currentSpeed, 0, ACCELERATION * 2.5 )
 			currentSpeed = velocity.x
-	else: # DEBUG
-		print("movement logic disabled")
+	#else: # DEBUG
+		#print("movement logic disabled")
 
 	# Handle dash physics logic (needs to be in physics instead of input)
 	if dashDelaying: # stop hampter if preparing for dash
