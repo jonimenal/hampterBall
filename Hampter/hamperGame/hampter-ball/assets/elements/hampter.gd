@@ -734,7 +734,6 @@ func _on_roll_cooldown_timeout() -> void:
 	#TODO add timeout functionality to prevent roll spamming
 	# make it work while the roll is rolling, not after, cuz its easier ig
 
-
 func _on_ball_bail_timer_timeout() -> void:
 	if bailCount >= 2:
 		bail = true
