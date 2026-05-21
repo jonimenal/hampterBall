@@ -171,7 +171,7 @@ func pull_ball(delta):
 func tp_to_ball(intentional : bool = false):
 	# check double ball click for person to exit tp loop
 	if not bail: # block tp is bailing is true
-		#print("TP TO BALL")
+		print("TP TO BALL")
 		teleporting = true
 		if intentional == true:
 			#print("start switch cooldown")
@@ -182,9 +182,9 @@ func tp_to_ball(intentional : bool = false):
 			ball_collision_shape.set_deferred("disabled", true)
 			for donut in donut_cols:
 				donut.set_deferred("disabled", false)
-		global_position = ball.global_position
+		global_position = ball.global_position # teleport
+		velocity = ball.linear_velocity * 4 # match velocities
 		#ball.apply_central_impulse(Vector2.ZERO) # reset ball momentum
-		velocity = Vector2.ZERO # reset hampter momentum
 		#ball.physics_material_override.bounce = 0
 
 # GODOT GAME ENV FUNCTIONS
@@ -268,37 +268,46 @@ func _process(_delta: float) -> void: # runs on a loop (framerate depends on har
 		#print("dash delaying")
 		dashDelaying = true
 func _physics_process(delta: float) -> void: # runs on a loop at a fixed framerate
+	#print("teleporting: ", teleporting)
 	#print(currentSpeed)
 	var pastState = state
 	xyDirection = Input.get_vector("left","right", "up", "down") # update to player current direction
 	var just_landed = is_on_floor() and wasOnAir # this var needs to be here, idk why but it does.
-	# back here 
+	
 	if not teleporting:
 		ballPastDist = ballLink.length()
 	ballLink = ball.global_position - global_position # update ball link
+	
 	# Anti clippling inside the ball
 	if shouldBeInBall:
 		hampter.safe_margin = 0.00001 # making safe margin bigger
 	else:
 		hampter.safe_margin = 1
+		
 	# ABSOLUTE CLIP OUT PREVENTION
-	if shouldBeInBall and not insideBall:
-		print("should be in ball, teleporting")
-		print(ball.linear_velocity.length_squared())
-		for donut in donut_cols:
-			donut.set_deferred("disabled", true)
-		tp_to_ball()
-	else:
-		for donut in donut_cols:
-			donut.set_deferred("disabled", false)
-		teleporting = false 
+	#
+	## reactive anti clip prevention
+	#if shouldBeInBall and not insideBall:
+		#print("should be in ball, teleporting")
+		#print(ball.linear_velocity.length_squared())
+		#for donut in donut_cols:
+			#donut.set_deferred("disabled", true)
+		#tp_to_ball()
+	#else:
+		#for donut in donut_cols:
+			#donut.set_deferred("disabled", false)
+		#teleporting = false 
+		#
 	if shouldBeInBall and not bail:
+		# clamp speed
+		ball.linear_velocity = clamp(ball.linear_velocity, ball.linear_velocity, Vector2(600,600))
+		
+
 		#var ballDistPerFrame = ball.linear_velocity.length() * (1.0/60.0) # define the distance per frame (physics runs at 60fps constant)
 		#var ballThreshold = ball_collision_shape.shape.radius - hampterCollision.shape.radius
 		#print("distance per frame: ", ballDistPerFrame)
 		#print("threshold: ", ballThreshold)
-
-		# reactive anti clip prevention
+		
 		#if (ballLink.x < -12 or ballLink.x > 12): #:
 			#print("away from link X")
 			##print(ball.linear_velocity.length_squ5ared())
@@ -306,38 +315,60 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 		#elif  (ballLink.y < -15.2 or ballLink.y > 13):
 			#print("away from link Y")
 			#tp_to_ball()
-		if ball.linear_velocity.length_squared() > 2000:
-			print("synching speeds")
-			velocity = ball.linear_velocity 
+		#if ball.linear_velocity.length_squared() > 200:
+			##print("synching speeds")
+			#velocity = ball.linear_velocity 
 			#print("pretty fast ball")
 			#print(ball.linear_velocity.length_squared())
 			#tp_to_ball()
 		#else:
 			#teleporting = false
 		#print(ballLink)
+		# rope prevention
+		#var pullDirection = ballLink.normalized()
+		#if ballLink.length() > ball_collision_shape.shape.radius:
+			#print("huge pull")
+			#velocity = pullDirection * 200000 * delta
+		#if ballLink.length() > ball_collision_shape.shape.radius - 2:
+			#print("pulling")
+			#velocity += pullDirection * 200 * delta
+		#global_position = global_position.lerp(ball.global_position, 0.5)
 		
 		# predictive anti clip prevention
 		
-		#var teleport = false
-		#if (ballPastDist < ballLink.length()) and (ballLink.length() - ballPastDist) > 1.8 and shouldBeInBall: # ball's speed is growing
+		# CHECK PREV FRAME LINK DISTANCE AND COMPARE IT TO CURRENT
+		var teleport = false 
+		if (ballPastDist < ballLink.length()) and (ballLink.length() - ballPastDist) > 2 and shouldBeInBall: # ball's speed is growing
+			teleport = true
+		elif (ballPastDist >= ballLink.length()) and shouldBeInBall:
+			teleporting = false
+			teleport = false
+		if teleport:
+			teleporting = true
+			print("predictive prevention")
+			tp_to_ball()
+		else:
+			teleporting = false
+		
+		# Calculate next frame link and compare it to current
+		#var ballFuturePosition = ball.global_position + ball.linear_velocity * delta
+		#var hampterFuturePosition = global_position + ball.linear_velocity * delta
+		#var futureLink = ballFuturePosition - hampterFuturePosition
+		#
+		#if futureLink.length() > ball_collision_shape.shape.radius + 1:
 			#teleport = true
-		#elif (ballPastDist >= ballLink.length()) and shouldBeInBall:
-			#teleporting = false
+		#else:
 			#teleport = false
-			#
 		#if teleport:
 			#teleporting = true
-			#print("predictive prevention")
+			#print("predictive link prevention")
 			#tp_to_ball()
-		var distFromCenter = ballLink.length()
-		if distFromCenter > ball_collision_shape.shape.radius - 2:
-			print("huge pull")
-		elif distFromCenter > ball_collision_shape.shape.radius - 4:
-			var pullDirection = ballLink.normalized()
-			print("pulling")
-			velocity += pullDirection * 200 * delta
-		#global_position = global_position.lerp(ball.global_position, 0.5)
-		
+		#else:
+			#teleporting = false
+		#print(futureLink.length())
+		#print(ball_collision_shape.shape.radius)
+		pass
+
 	# Handle gravity (y axis / y logic)
 	if not dashDelaying and not teleporting:
 		#print("gravity on")
@@ -357,6 +388,9 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 				# TODO jump buffer sometimes bugs and give out a double jump comboing with coyote jump, its a feature combo bug dude 
 	#else:
 		#print("no gravity applied")
+		
+	# DEBUG back here
+
 	# Handle movement (x axis/x logic)
 	direction = Input.get_axis("left", "right") # update axis
 	if not dashing and not dashDelaying and not (rolling and not shouldBeInBall): # block movement logic if player is dashing or rolling
@@ -654,9 +688,7 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 	if bail:
 		if not insideBall and not shouldBeInBall:
 			bail = false
-	
-	if teleporting or ballJumping:
-		velocity = Vector2.ZERO
+
 	## DEBUG
 	#print("Y distance: ", ballLink.y)
 	
@@ -666,8 +698,8 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 	if not dashDelaying: #lock move and slide if dashDelaying
 		if insideBall and Input.is_action_pressed("ball") and bail:
 			move_and_slide()
-			print("ball tp lock prevention")
-		elif not teleporting: # also lock if teleporting
+			#print("ball tp lock prevention")
+		elif not teleporting: # also lock if teleporting and should be in ball
 			move_and_slide() # trigger movement
 		#else:
 			#print("no move and slide")
