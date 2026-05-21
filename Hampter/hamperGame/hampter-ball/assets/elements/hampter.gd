@@ -87,6 +87,10 @@ var bailCount = 0
 var ballBailTime = 0
 var bailTiming = false
 var bail = false
+var ballDashDelay = false
+var ballDelayFrames = 0
+var ballDash = false
+var ballInitPosition : Vector2
 # include nodes (hampter vars)
 @onready var hampter: CharacterBody2D = $"."
 @onready var hampterSprite: AnimatedSprite2D = $AnimatedSprite2D
@@ -143,14 +147,14 @@ func jump():
 		velocity.y = jump_velocity
 	else:
 		velocity.y = jump_velocity/1.25
-func roll():
+func roll(delta):
 		var rollSSpeed = direction * SPEED * 3
-		pushForce = 5
+		pushForce = 20
 		if rollFrames <= 1: # instant boost
 			velocity.x = rollSSpeed
 			currentSpeed =+ velocity.x
 		else: # progressive slowdown
-			velocity.x = move_toward(currentSpeed, direction * SPEED * grounded_max_speed, 10)
+			velocity.x = move_toward(currentSpeed, direction * SPEED * grounded_max_speed, 450 * delta)
 			currentSpeed = velocity.x
 func dash(): # dashing logic
 	# handle dash logic
@@ -248,21 +252,37 @@ func _input(_InputEvent) -> void: # runs anytime an input from the player is pre
 			dashDelayOver = true
 			pass
 	# HANDLE BALL INPUTS
-	# Handle ball jump (INPUT)
+	# Handle ball jump input
 	if shouldBeInBall:
 		if Input.is_action_pressed("jump") and insideBall and ballJumping == false:
 			xyDirection = Input.get_vector("left","right", "up", "down") # get current direction
 			pushForce = 0
 			ballJumping = true
 			# apply jump velocity on ball
-			ball.linear_velocity = Vector2((xyDirection.x * -0.5) * jump_velocity * 2.5,  jump_velocity * 2.6)
+			ball.linear_velocity = Vector2((xyDirection.x * -0.5) * jump_velocity * 1.6,  jump_velocity * 2.65)
 		if Input.is_action_just_released("jump") and insideBall:
 			pushForce = push
 	# TODO make dash doable while inside ball
 	# Handle ball dash (INPUT)
 	if shouldBeInBall:
 		if Input.is_action_just_pressed("dash") and insideBall:
-			ball.apply_central_impulse(Vector2(xyDirection.normalized().x * 250, xyDirection.normalized().y * 350))
+			ballDashDelay = true
+			ballInitPosition = ball.global_position
+			
+		if ballDelayFrames == 10:
+			# reset vars
+			ballDelayFrames = 0
+			ballDashDelay = false
+			ballDash = true # trigger ball dash
+		elif ballDashDelay == true:
+			ball.global_position = ballInitPosition # freeze the ball 
+			ballDelayFrames += 1 # count frames
+			print("frame count: ", ballDelayFrames)
+		
+		if ballDash == true:
+			ballDash = false
+			ball.apply_central_impulse(Vector2(xyDirection.normalized().x * 250, xyDirection.normalized().y * 450))
+			
 func _process(_delta: float) -> void: # runs on a loop (framerate depends on hardware)
 	if !dash_delay_timer.is_stopped():
 		#print("dash delaying")
@@ -273,34 +293,6 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 	xyDirection = Input.get_vector("left","right", "up", "down") # update to player current direction
 	var just_landed = is_on_floor() and wasOnAir # this var needs to be here, idk why but it does.
 	ballLink = ball.global_position - global_position # update ball link
-	## Anti clippling inside the ball
-	#if shouldBeInBall:
-		#hampter.safe_margin = 0.00001 # making safe margin bigger
-	#else:
-		#hampter.safe_margin = 1
-	#if insideBall:
-		#var ballDistPerFrame = ball.linear_velocity.length() * (1.0/60.0) # define the distance per frame (physics runs at 60fps constant)
-		#var ballThreshold = ball_collision_shape.shape.radius - hampterCollision.shape.radius
-		#print("distance per frame: ", ballDistPerFrame)
-		#print("threshold: ", ballThreshold)
-		
-		# reactive and clip prevention
-		#if (ballLink.x < -12 or ballLink.x > 12): #:
-			#print("away from link X")
-			##print(ball.linear_velocity.length_squ5ared())
-			#tp_to_ball()
-		#elif  (ballLink.y < -15.2 or ballLink.y > 13):
-			#print("away from link Y")
-			#tp_to_ball()
-		#if ball.linear_velocity.length_squared() > 100000:
-			#print("pretty fast ball")
-			#print(ball.linear_velocity.length_squared())
-			#tp_to_ball()
-		#else:
-			#teleporting = false
-		##print(ballLink)
-		## predictive anti clip prevention
-		# nothing here, predictive prevention should be developed in fixBall branch
 	if shouldBeInBall and not insideBall:
 		print("should be in ball, teleporting")
 		# back here
@@ -327,11 +319,11 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 				jump_buffer = false
 				#print("jump buffer")
 				# TODO jump buffer sometimes bugs and give out a double jump comboing with coyote jump, its a feature combo bug dude 
-	else:
-		print("no gravity applied")
+	#else:
+		#print("no gravity applied")
 	# Handle movement (x axis/x logic)
 	direction = Input.get_axis("left", "right") # update axis
-	if not dashing and not dashDelaying and not (rolling and not shouldBeInBall): # block movement logic if player is dashing or rolling
+	if not dashing and not dashDelaying and not rolling: #(rolling and not shouldBeInBall): # block movement logic if player is dashing or rolling
 		#print("movement on")
 		if wasDashing and not is_on_floor():
 			 # apply smoother ease if player was dashing
@@ -459,28 +451,30 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 				velocity.y += get_jump_gravity() * delta # force gravity to come back
 			else:
 				ballDownFrames = 0
-
+	#if shouldBeInBall:
+		#print("should be in ball")
+	#else:
+		#print("should not be in ball")
 	# Handle ball movement physics
 	if shouldBeInBall: # lock player inside the ball, absolute clipping prevention
 		tp_to_ball()
-	
-	# move the ball itself instead of hampter
+	# move the ball itself instead of hampter:
 	# apply y direction
 	if shouldBeInBall:
 		if ballGoingUp or ballWasGoingDown:
-			ball.apply_central_force(Vector2(0, xyDirection.y * 250))
-			print("Y FORCE")
+			ball.apply_central_force(Vector2(0, xyDirection.y * 400))
+			#print("Y FORCE")
 	if xyDirection.x and shouldBeInBall:
 		# apply x direction
 		if not ballGoingUp and not ballWasGoingDown:
 			ball.apply_central_force(Vector2(xyDirection.x * 300, 0))
-			print("applying force")
+			#print("applying force")
 		else:
-			ball.apply_central_force(Vector2(xyDirection.x * 400, 0))
-
+			ball.apply_central_force(Vector2(xyDirection.x * 450, 0))
 		
 	if rolling and shouldBeInBall:
-		ball.apply_central_impulse(Vector2(direction * 10, 0))
+		print("rolling")
+		ball.apply_central_impulse(Vector2(direction * 20, 0))
 	
 	# Handle ball exit 
 	if Input.is_action_just_pressed("ball") and insideBall:
@@ -625,7 +619,7 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 	
 	# Handle roll grounded (needs to be in physics bcos of is_in_floor() better responsiveness
 	if rolling:
-		roll()
+		roll(delta)
 	if hampterSprite.animation == "roll":
 		rollFrames += 1
 		#print("roll frame: ", rollFrames)
@@ -695,7 +689,7 @@ func _on_inside_ball_body_entered(_body: Node2D) -> void: # check if gampter INS
 	# Tinker IN BALL ball physics
 	if shouldBeInBall:
 		ball.mass = 1.35
-		ball.physics_material_override.bounce = 0.6
+		ball.physics_material_override.bounce = 0.0
 		ball.gravity_scale = 0.6
 func _on_inside_ball_body_exited(_body: Node2D) -> void: # check if gfasmper OUTSIDE ball
 	# BALL STATE OUTSIDE
