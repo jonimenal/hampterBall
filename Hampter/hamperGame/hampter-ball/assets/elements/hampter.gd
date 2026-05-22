@@ -183,7 +183,7 @@ func tp_to_ball(intentional : bool = false):
 			for donut in donut_cols:
 				donut.set_deferred("disabled", false)
 		global_position = ball.global_position # teleport
-		velocity = ball.linear_velocity * 4 # match velocities
+		velocity = ball.linear_velocity # match velocities
 		#ball.apply_central_impulse(Vector2.ZERO) # reset ball momentum
 		#ball.physics_material_override.bounce = 0
 
@@ -195,10 +195,10 @@ func _ready(): # runs on game startup, when everything is ready ig
 	for gormiti in range(90):
 		var angle = gormiti*2*PI/90
 		var shape = CircleShape2D.new()
-		shape.radius = 1
+		shape.radius = 2
 		var donut = CollisionShape2D.new()
 		donut.shape = shape
-		donut.position = Vector2(16*cos(angle), sin(angle)*16)
+		donut.position = Vector2(15*cos(angle), sin(angle)*15)
 		donut.disabled = true
 		donut_cols.append(donut)
 		ball.add_child(donut)
@@ -285,23 +285,23 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 		hampter.safe_margin = 1
 		
 	# ABSOLUTE CLIP OUT PREVENTION
-	#
-	## reactive anti clip prevention
-	#if shouldBeInBall and not insideBall:
-		#print("should be in ball, teleporting")
-		#print(ball.linear_velocity.length_squared())
-		#for donut in donut_cols:
-			#donut.set_deferred("disabled", true)
-		#tp_to_ball()
-	#else:
-		#for donut in donut_cols:
-			#donut.set_deferred("disabled", false)
-		#teleporting = false 
+	if shouldBeInBall and not insideBall:
+		print("should be in ball, teleporting")
+		print(ball.linear_velocity.length_squared())
+		tp_to_ball()
+	else:
+		teleporting = false 
 		#
 	if shouldBeInBall and not bail:
 		# clamp speed
-		ball.linear_velocity = clamp(ball.linear_velocity, ball.linear_velocity, Vector2(600,600))
+		ball.linear_velocity = clamp(ball.linear_velocity, ball.linear_velocity, Vector2(500,500))
 		
+		# DEBUG check speeds
+		print("hampter: ", velocity.length())
+		print("ball: ", ball.linear_velocity.length())
+		# constant anti clip prevention
+		# limit global position to the ball radius
+		global_position = ball.global_position - ballLink.normalized() * min(ballLink.length(), ball_collision_shape.shape.radius - 3.5)
 
 		#var ballDistPerFrame = ball.linear_velocity.length() * (1.0/60.0) # define the distance per frame (physics runs at 60fps constant)
 		#var ballThreshold = ball_collision_shape.shape.radius - hampterCollision.shape.radius
@@ -325,10 +325,10 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 			#teleporting = false
 		#print(ballLink)
 		# rope prevention
-		#var pullDirection = ballLink.normalized()
-		#if ballLink.length() > ball_collision_shape.shape.radius:
-			#print("huge pull")
-			#velocity = pullDirection * 200000 * delta
+		var pullDirection = ballLink.normalized()
+		if ballLink.length() > ball_collision_shape.shape.radius - 4:
+			print("huge pull")
+			velocity = pullDirection * 2000 * delta
 		#if ballLink.length() > ball_collision_shape.shape.radius - 2:
 			#print("pulling")
 			#velocity += pullDirection * 200 * delta
@@ -337,19 +337,21 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 		# predictive anti clip prevention
 		
 		# CHECK PREV FRAME LINK DISTANCE AND COMPARE IT TO CURRENT
-		var teleport = false 
-		if (ballPastDist < ballLink.length()) and (ballLink.length() - ballPastDist) > 2 and shouldBeInBall: # ball's speed is growing
-			teleport = true
-		elif (ballPastDist >= ballLink.length()) and shouldBeInBall:
-			teleporting = false
-			teleport = false
-		if teleport:
-			teleporting = true
-			print("predictive prevention")
-			tp_to_ball()
-		else:
-			teleporting = false
+		#var teleport = false 
+		#if (ballPastDist < ballLink.length()) and (ballLink.length() - ballPastDist) > 2.2 and shouldBeInBall: # ball's speed is growing
+			#teleport = true
+		#elif (ballPastDist >= ballLink.length()) and shouldBeInBall:
+			#teleporting = false
+			#teleport = false
+			#
+		#if teleport:
+			#teleporting = true
+			#print("modal clip prevention")
+			#tp_to_ball()
+		#else:
+			#teleporting = false
 		
+		# true predictive attempt
 		# Calculate next frame link and compare it to current
 		#var ballFuturePosition = ball.global_position + ball.linear_velocity * delta
 		#var hampterFuturePosition = global_position + ball.linear_velocity * delta
@@ -365,9 +367,7 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 			#tp_to_ball()
 		#else:
 			#teleporting = false
-		#print(futureLink.length())
-		#print(ball_collision_shape.shape.radius)
-		pass
+		#pass
 
 	# Handle gravity (y axis / y logic)
 	if not dashDelaying and not teleporting:
@@ -521,6 +521,9 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 
 	# Handle ball movement physics
 	if insideBall and shouldBeInBall and not bail: # check if player is inside ball (and is supposed to)
+		# TODO the below if check is not accurate, it is checking only for positive values
+		if ball.linear_velocity.x > 200 or ball.linear_velocity.y > 200: # another anti clip/slowdown prevention
+			velocity += ball.linear_velocity  # match ball's movement
 		ball.physics_material_override.friction = 0.3
 		if rolling: # Handle ball roll
 			ball.apply_central_impulse(xyDirection * 20)
