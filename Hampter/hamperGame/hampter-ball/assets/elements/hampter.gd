@@ -176,17 +176,18 @@ func tp_to_ball(intentional : bool = false):
 	# check double ball click for person to exit tp loop
 	if not bail: # block tp is bailing is true
 		#print("TP TO BALL")
-		teleporting = true
+
 		if intentional == true:
+			teleporting = true
 			#print("start switch cooldown")
 			ball_switch_cooldown.start()
+			global_position = ball.global_position 
 		if shouldBeInBall == false:
 			shouldBeInBall = true
 		if !ball_collision_shape.disabled:
 			ball_collision_shape.set_deferred("disabled", true)
 			for donut in donut_cols:
 				donut.set_deferred("disabled", false)
-		global_position = ball.global_position
 		#ball.apply_central_impulse(Vector2.ZERO) # reset ball momentum
 		velocity = Vector2.ZERO # reset hampter momentum
 		#ball.physics_material_override.bounce = 0
@@ -199,10 +200,10 @@ func _ready(): # runs on game startup, when everything is ready ig
 	for gormiti in range(90):
 		var angle = gormiti*2*PI/90
 		var shape = CircleShape2D.new()
-		shape.radius = 1
+		shape.radius = 1.5
 		var donut = CollisionShape2D.new()
 		donut.shape = shape
-		donut.position = Vector2(16*cos(angle), sin(angle)*16)
+		donut.position = Vector2(15*cos(angle), sin(angle)*15)
 		donut.disabled = true
 		donut_cols.append(donut)
 		ball.add_child(donut)
@@ -255,11 +256,11 @@ func _input(_InputEvent) -> void: # runs anytime an input from the player is pre
 	# Handle ball jump input
 	if shouldBeInBall:
 		if Input.is_action_pressed("jump") and insideBall and ballJumping == false:
-			xyDirection = Input.get_vector("left","right", "up", "down") # get current direction
-			pushForce = 0
-			ballJumping = true
+			#xyDirection = Input.get_vector("left","right", "up", "down") # get current direction
+			pushForce = 200
+			#ballJumping = true
 			# apply jump velocity on ball
-			ball.linear_velocity = Vector2((xyDirection.x * -0.5) * jump_velocity * 1.6,  jump_velocity * 2.65)
+			#ball.linear_velocity = Vector2((xyDirection.x * -0.5) * jump_velocity * 1.6,  jump_velocity * 2.65)
 		if Input.is_action_just_released("jump") and insideBall:
 			pushForce = push
 	# TODO make dash doable while inside ball
@@ -456,21 +457,22 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 	#else:
 		#print("should not be in ball")
 	# Handle ball movement physics
-	if shouldBeInBall: # lock player inside the ball, absolute clipping prevention
-		tp_to_ball()
+	#if shouldBeInBall: # lock player inside the ball, absolute clipping prevention
+		#tp_to_ball()
 	# move the ball itself instead of hampter:
 	# apply y direction
 	if shouldBeInBall:
-		if ballGoingUp or ballWasGoingDown:
-			ball.apply_central_force(Vector2(0, xyDirection.y * 400))
-			#print("Y FORCE")
-	if xyDirection.x and shouldBeInBall:
-		# apply x direction
-		if not ballGoingUp and not ballWasGoingDown:
-			ball.apply_central_force(Vector2(xyDirection.x * 300, 0))
-			#print("applying force")
-		else:
-			ball.apply_central_force(Vector2(xyDirection.x * 450, 0))
+		global_position = ball.global_position - ballLink.normalized() * min(ballLink.length(), ball_collision_shape.shape.radius - 2.5) # set hampter position condition
+		#if ballGoingUp or ballWasGoingDown:
+			#ball.apply_central_force(Vector2(0, xyDirection.y * 400))
+			##print("Y FORCE")
+	#if xyDirection.x and shouldBeInBall:
+		## apply x direction
+		#if not ballGoingUp and not ballWasGoingDown:
+			#ball.apply_central_force(Vector2(xyDirection.x * 300, 0))
+			##print("applying force")
+		#else:
+			#ball.apply_central_force(Vector2(xyDirection.x * 450, 0))
 		
 	if rolling and shouldBeInBall:
 		print("rolling")
