@@ -252,12 +252,14 @@ func _input(_InputEvent) -> void: # runs anytime an input from the player is pre
 		else:
 			dashDelayOver = true
 			pass
+			
 	# HANDLE BALL INPUTS
 	# Handle ball jump input
-	if shouldBeInBall:
-		if Input.is_action_pressed("jump") and insideBall and ballJumping == false:
+	if shouldBeInBall: # TOD
+		if Input.is_action_pressed("jump") and insideBall and ballJumping == false and is_on_floor():
 			#xyDirection = Input.get_vector("left","right", "up", "down") # get current direction
 			pushForce = 200
+			velocity.y -= 20
 			#ballJumping = true
 			# apply jump velocity on ball
 			#ball.linear_velocity = Vector2((xyDirection.x * -0.5) * jump_velocity * 1.6,  jump_velocity * 2.65)
@@ -663,10 +665,15 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 	# push ball
 	for i in get_slide_collision_count():
 		var c = get_slide_collision(i)
-		# print(c.get_collider()) DEBUG, the collision sometimes triggers on the TileMapLayer while inside the ball
-		if c.get_collider() is RigidBody2D:
+		print(c.get_collider()) # DEBUG, the collision sometimes triggers on the TileMapLayer while inside the ball
+		if c.get_collider() is RigidBody2D: # TODO make hackeysack physics, that is, make hampter and ball both average each other's speed towards same direction
+			var hampterMass = 0.7
+			var hackeyVelocity = ((hampterMass * velocity) + (ball.mass * ball.linear_velocity)) / (ball.mass + hampterMass)
 			if sign(c.get_normal().x) == sign(direction):
 				velocity.x *= 0.01
+			#if insideBall and shouldBeInBall: # average their velocities
+				#ball.linear_velocity = hackeyVelocity
+				#velocity =  hackeyVelocity
 			c.get_collider().apply_central_impulse(-c.get_normal() * pushForce)
 
 # SIGNAL CHECKS
