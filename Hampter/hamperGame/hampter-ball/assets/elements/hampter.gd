@@ -186,9 +186,10 @@ func tp_to_ball(intentional : bool = false):
 			ball_collision_shape.set_deferred("disabled", true)
 			for donut in donut_cols:
 				donut.set_deferred("disabled", false)
-		global_position = ball.global_position
+		# TODO add that clamped position thing to hampter can move around more dynamically
+		global_position = ball.global_position - Vector2(0, -15)
 		#ball.apply_central_impulse(Vector2.ZERO) # reset ball momentum
-		velocity = Vector2.ZERO # reset hampter momentum
+		#velocity = Vector2.ZERO # reset hampter momentum
 		#ball.physics_material_override.bounce = 0
 
 # GODOT GAME ENV FUNCTIONS
