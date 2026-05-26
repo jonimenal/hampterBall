@@ -418,6 +418,7 @@ jump_peak_time = 0.27
 jump_drop_time = 0.8
 gravityJ = -9.0
 gravityF = -4.0
+pull_force = 34.0
 dash_speed = 350.0
 
 [node name="Camera2D" type="Camera2D" parent="Hampter" unique_id=2013991986]
