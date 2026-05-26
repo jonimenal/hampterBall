@@ -569,8 +569,6 @@ one_shot = true
 wait_time = 0.1
 one_shot = true
 
-[node name="rollCooldown" type="Timer" parent="." unique_id=984023321]
-
 [node name="ballBailTimer" type="Timer" parent="." unique_id=729436457]
 wait_time = 0.5
 
@@ -580,5 +578,4 @@ wait_time = 0.5
 [connection signal="timeout" from="dashTimer" to="." method="_on_dash_timer_timeout"]
 [connection signal="timeout" from="dashDelayTimer" to="." method="_on_dash_delay_timer_timeout"]
 [connection signal="timeout" from="ball_switch_cooldown" to="." method="_on_ball_switch_cooldown_timeout"]
-[connection signal="timeout" from="rollCooldown" to="." method="_on_roll_cooldown_timeout"]
 [connection signal="timeout" from="ballBailTimer" to="." method="_on_ball_bail_timer_timeout"]

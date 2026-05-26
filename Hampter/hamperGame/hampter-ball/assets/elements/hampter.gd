@@ -42,7 +42,6 @@ var holdingRoll = false
 @onready var jump_timer: Timer = $JumpTimer # include jumpTimer node
 @onready var coyote_timer: Timer = $coyoteTimer
 @onready var dash_delay_timer: Timer = $dashDelayTimer
-@onready var roll_cooldown: Timer = $rollCooldown
 @onready var ball_bail_timer: Timer = $ballBailTimer
 # gravity logic variables
 @onready var jump_velocity : float = ((2.0 * jump_height) / jump_peak_time) * -1.0 # use this to calculate a velocity that respects set height
@@ -52,11 +51,12 @@ var holdingRoll = false
 @onready var fastfall_gravity : float = ((-80 * jump_height) / (jump_drop_time * jump_drop_time)) * -1.0 # same formula as fall gravity
 @onready var dash_gravity: float = ((-14 * 20) / (0.4 * 0.4)) * -1.0 # same formula as jump_gravity
 @onready var dash_fall_gravity : float = ((-17 * 20) / (0.9 * 0.9)) * -1.0 # same formula as fall_gravity
-# dashing vars
+# dash vars (dashing vars)
 var dashDelayOver = false
+var dashLock = false
 @export var dash_speed := 50.0
 @onready var dash_timer: Timer = $dashTimer
-var dashing = false # TODO make dashing variable be defined properly.
+var dashing = false
 var groundedDash = false
 
 # player direction
@@ -223,19 +223,21 @@ func _input(_InputEvent) -> void: # runs anytime an input from the player is pre
 			ball.linear_velocity = Vector2((xyDirection.x * -0.5) * jump_velocity * 1.5,  jump_velocity * 2.45)
 		if Input.is_action_just_released("jump") and insideBall:
 			pushForce = push # reset push force
+		
 		 # Handle ball dash (INPUT) 	# TODO make dash doable while inside ball
 		if Input.is_action_just_pressed("dash") and insideBall:
 			ballDashDelay = true
 			ballInitPosition = ball.global_position
-		if ballDelayFrames == 10:
-			# reset vars
-			ballDelayFrames = 0
-			ballDashDelay = false
-			ballDash = true # trigger ball dash
-		elif ballDashDelay == true:
-			ball.global_position = ballInitPosition # freeze the ball 
-			ballDelayFrames += 1 # count frames
-			print("frame count: ", ballDelayFrames)
+		
+		#if ballDelayFrames == 10:
+			## reset vars
+			#ballDelayFrames = 0
+			#ballDashDelay = false
+			#ballDash = true # trigger ball dash
+		#elif ballDashDelay == true:
+			#ball.global_position = ballInitPosition # freeze the ball 
+			#ballDelayFrames += 1 # count frames
+			#print("frame count: ", ballDelayFrames)
 		if ballDash == true: # somethin stinky goin on here...
 			ballDash = false
 			ball.apply_central_impulse(Vector2(xyDirection.normalized().x * 250, xyDirection.normalized().y * 450))
@@ -297,38 +299,38 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 			else: # stop logic
 				velocity.x = move_toward(currentSpeed, 0, ACCELERATION * 2 )
 			currentSpeed = velocity.x
-
-
-	# Handle dash physics logic
+			
+	# Handle dash physics logic #
 	if dashDelaying: # stop hampter if preparing for dash
-		#print("stopping hampter")
 		global_position = currentPosition
-	if dashDelayOver:
+		if insideBall and shouldBeInBall:
+			ball.global_position = currentPosition
+	if dashDelayOver: # these need to happen regardless
 		dash_timer.start()
 		dashing = true # is this the culprit? make dashing depend on sprite state, maybe
 		wasDashing = true
 		dashDelayOver = false
+	if dashDelayOver and not shouldBeInBall:
 		# dash logic:
 		# GROUNDED DASHES
 		if is_on_floor():
 			groundedDash = true
-			velocity = xyDirection.normalized() * dash_speed # diagonal dashes
+			state = "dash"
+			velocity = xyDirection.normalized() * dash_speed / 1.5 # diagonal dashes
 			if xyDirection.x == 0: # neutral x grounded
 				print("neutral grounded")
 				velocity.y = -dash_speed / 2
 			elif xyDirection.y == 0:  # neutral y grounded
 				velocity.y = -dash_speed / 2.4
 				print("velocity before ", velocity.x)
-				if state == "walking":
-					print("dash boost")
-					velocity.x *= (dash_speed * 0.0015)
-				print("velocity after ", velocity.x)
+				velocity.x += ( xyDirection.normalized().x * dash_speed ) / 5
+				currentSpeed = velocity.x
 				print("straight grounded dash ", xyDirection.normalized())
 			else:
 				print("diagonal grounded")
 		# AIRBONE DASHES
 		elif xyDirection == Vector2.ZERO: # neutral air dash
-			velocity.y = -dash_speed / 2
+			velocity.y = -dash_speed / 1.4
 		else: # normal air dash
 			# handle dash logic
 			xyDirection = Input.get_vector("left","right", "up", "down")
@@ -336,6 +338,8 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 			if dashing: # lower dash speed progressivelly (dash counter speed)
 				velocity = velocity.move_toward(Vector2.ZERO, dash_speed/4)
 				pushForce = 400
+	elif dashDelayOver and shouldBeInBall:
+		pass # do the 
 	else:
 		if not insideBall: # bandaid for error where pushForce was reset while jumping inside ball
 			pushForce = push # reset push force
@@ -345,9 +349,10 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 	if dashing == false and is_on_floor():
 		groundedDash = false
 	# Handle jump physics logic
-	# Handle holding jump
-	if Input.is_action_pressed("jump") and jump_timer.time_left != 0 and velocity.y < 0 and not dashing: 
-		# TODO: fix dashing check, jump hold is mixing with jump
+	# Handle holding jump (jump hold)
+	
+	if Input.is_action_pressed("jump") and jump_timer.time_left != 0 and velocity.y < 0 and not dashing and not dashLock: 
+		print("jump hold")
 		velocity.y += move_toward(velocity.y, jump_velocity * 20 * delta, 500000)
 	# Handle jump cancel
 	if Input.is_action_just_released("jump") and not is_on_floor():
@@ -388,7 +393,7 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 
 	# Handle ball movement physics
 	if shouldBeInBall: # lock player inside the ball, absolute clipping prevention
-		global_position = ball.global_position - ballLink.normalized() * min(ballLink.length(), ball_collision_shape.shape.radius - 2) # set hampter position condition
+		global_position = ball.global_position - ballLink.normalized() * min(ballLink.length(), ball_collision_shape.shape.radius - 3) # set hampter position condition
 	if shouldBeInBall:
 		velocity += ball.linear_velocity / 4
 		if ballGoingUp or ballWasGoingDown: # apply y direction
@@ -420,7 +425,7 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 				ballDownFrames = 0
 				
 	# handle ball roll
-	if rolling and shouldBeInBall:
+	if rolling and shouldBeInBall and not ballJumping:
 		print("rolling")
 		velocity = Vector2.ZERO
 		global_position.move_toward(ball.global_position - Vector2(0, -12), 100)
@@ -585,7 +590,18 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 		pushForce = push
 	if pastFlip != hampterSprite.flip_h: # cancel roll
 		rolling = false
-	
+	# handle dash lock
+	if state == "dash":
+		dashLock = true
+	else:
+		dashLock = false
+	# keep hampter still while dashing inside ball
+	if shouldBeInBall and (state == "dash" or dashing):
+		global_position = ball.global_position
+		velocity = Vector2.ZERO
+	if not ballWasGoingDown and not ballGoingUp and state == "dash":
+		state = "land"
+	# check if ball landed and set hampter to landing state if so
 	# Update variables 
 	if direction != 0:
 		pastDirection = sign(direction)
@@ -673,12 +689,6 @@ func _on_dash_timer_timeout() -> void: # check if dash ended
 func _on_ball_switch_cooldown_timeout() -> void: # check if tp cooldown over
 	# *fix for constant tp in/out while holding pull button inside ball right after teleporting in
 	pass
-func _on_roll_cooldown_timeout() -> void:
-	pass # Replace with function body.
-	#TODO add timeout functionality to prevent roll spamming
-	# make it work while the roll is rolling, not after, cuz its easier ig
-
-
 func _on_ball_bail_timer_timeout() -> void:
 	if bailCount >= 2:
 		bail = true
