@@ -1,6 +1,5 @@
 extends CharacterBody2D
 
-# tinkering variables
 # movemnet
 const trueSPEED = 60
 var SPEED = trueSPEED
@@ -11,7 +10,6 @@ const ACCELERATION = 10.0
 @export var onAir_acceleration := 1.0
 @export var onBall_max_speed := 2.5
 @export var onBall_acceleration := 0.5
-#TODO tune hamper onAir speed to make more of an arch sorta jump
 
 # jump vars
 @export var jump_height = 60
@@ -20,21 +18,17 @@ const ACCELERATION = 10.0
 @export var jump_drop_time : float
 @export var gravityJ : float
 @export var gravityF : float
-
 var wasJumping = false
 var cancelJump = false
 # jump buffer stuff
 @export var jump_buffer_time : float
 var jump_buffer : bool = false
-# coyote time stuff
+# coyote time vars
 var noCoyoteTime = false
-
-# fastfall
+# fastfall vars
 @export var fastfall_power : float
-
-# landing
+# landing vars
 var landingSpeed = 0
-
 # roll vars
 var rolling = false
 var canRoll = true
@@ -50,7 +44,6 @@ var holdingRoll = false
 @onready var dash_delay_timer: Timer = $dashDelayTimer
 @onready var roll_cooldown: Timer = $rollCooldown
 @onready var ball_bail_timer: Timer = $ballBailTimer
-
 # gravity logic variables
 @onready var jump_velocity : float = ((2.0 * jump_height) / jump_peak_time) * -1.0 # use this to calculate a velocity that respects set height
 @onready var jump_gravity : float = ((gravityJ * jump_height) / (jump_peak_time * jump_peak_time)) * -1.0
@@ -59,20 +52,21 @@ var holdingRoll = false
 @onready var fastfall_gravity : float = ((-80 * jump_height) / (jump_drop_time * jump_drop_time)) * -1.0 # same formula as fall gravity
 @onready var dash_gravity: float = ((-14 * 20) / (0.4 * 0.4)) * -1.0 # same formula as jump_gravity
 @onready var dash_fall_gravity : float = ((-17 * 20) / (0.9 * 0.9)) * -1.0 # same formula as fall_gravity
-
-# dashing
+# dashing vars
 var dashDelayOver = false
 @export var dash_speed := 50.0
 @onready var dash_timer: Timer = $dashTimer
-var dashing = false
+var dashing = false # TODO make dashing variable be defined properly.
 var groundedDash = false
 
 # player direction
 var xyDirection = Input.get_vector("left","right", "up", "down")
 var direction = Input.get_axis("left", "right")
+
 # collisions
 const push = 10
 var pushForce = push
+
 # ball vars
 var donut_cols = []
 var ballLink = Vector2.ZERO
@@ -91,6 +85,7 @@ var ballDashDelay = false
 var ballDelayFrames = 0
 var ballDash = false
 var ballInitPosition : Vector2
+
 # include nodes (hampter vars)
 @onready var hampter: CharacterBody2D = $"."
 @onready var hampterSprite: AnimatedSprite2D = $AnimatedSprite2D
@@ -169,7 +164,7 @@ func pull_ball(delta):
 		scan_area.shape.radius = 70
 		scan_area.shape.height = 50
 		scan_area.position.y = 0
-		velocity += ballLink.normalized() * 400 * delta
+		#velocity += ballLink.normalized() * 400 * delta
 		magnetForce = 0
 		set_collision_mask_value(2, false)
 func tp_to_ball(intentional : bool = false):
@@ -458,7 +453,7 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 		#print("should not be in ball")
 	# Handle ball movement physics
 	if shouldBeInBall: # lock player inside the ball, absolute clipping prevention
-		tp_to_ball()
+		global_position = ball.global_position - ballLink.normalized() * min(ballLink.length(), ball_collision_shape.shape.radius - 2) # set hampter position condition
 	# move the ball itself instead of hampter:
 	# apply y direction
 	if shouldBeInBall:
@@ -468,14 +463,17 @@ func _physics_process(delta: float) -> void: # runs on a loop at a fixed framera
 	if xyDirection.x and shouldBeInBall:
 		# apply x direction
 		if not ballGoingUp and not ballWasGoingDown:
-			ball.apply_central_force(Vector2(xyDirection.x * 300, 0))
+			#ball.apply_central_force(Vector2(xyDirection.x * 450, 0))
 			#print("applying force")
+			pass
 		else:
 			ball.apply_central_force(Vector2(xyDirection.x * 450, 0))
 		
 	if rolling and shouldBeInBall:
 		print("rolling")
-		ball.apply_central_impulse(Vector2(direction * 20, 0))
+		velocity = Vector2.ZERO
+		global_position.move_toward(ball.global_position - Vector2(0, -12), 100)
+		ball.apply_central_impulse(Vector2(direction * 15, 0))
 	
 	# Handle ball exit 
 	if Input.is_action_just_pressed("ball") and insideBall:
